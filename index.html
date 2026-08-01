@@ -1,0 +1,966 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Hero Wars Advisor PWA v0.7</title>
+<style>
+:root{--bg:#0b0f15;--panel:#151b23;--panel2:#202834;--line:#303a47;--text:#edf2f7;--muted:#9ba8b7;--accent:#f2b84b;--green:#49c98d;--yellow:#ffd166;--red:#ef476f;--blue:#62a8ff}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:15px/1.48 system-ui,-apple-system,Segoe UI,sans-serif}
+.app{display:grid;grid-template-columns:250px 1fr;min-height:100vh}aside{background:#080c11;border-right:1px solid var(--line);padding:20px;position:sticky;top:0;height:100vh;overflow:auto}
+.brand{font-size:20px;font-weight:850;margin-bottom:22px}.brand small{display:block;font-size:11px;color:var(--muted)}
+nav button{display:block;width:100%;text-align:left;background:none;color:var(--muted);border:0;padding:10px 12px;border-radius:9px;margin:4px 0;font-weight:750}
+nav button.active,nav button:hover{background:var(--panel2);color:#fff}
+main{padding:24px;max-width:1500px;width:100%}header{display:flex;align-items:center;justify-content:space-between;gap:12px}h1,h2,h3,h4{margin-top:0}
+.view{display:none}.view.active{display:block}.card{background:var(--panel);border:1px solid var(--line);border-radius:15px;padding:18px;margin:14px 0}
+.grid{display:grid;gap:14px}.grid.two{grid-template-columns:1fr 1fr}.grid.three{grid-template-columns:repeat(3,1fr)}.grid.four{grid-template-columns:repeat(4,1fr)}
+button{background:var(--accent);border:0;border-radius:8px;padding:10px 13px;font-weight:850;cursor:pointer}button.secondary{background:var(--panel2);color:var(--text);border:1px solid var(--line)}button.danger{background:var(--red);color:white}
+input,select,textarea{width:100%;background:var(--panel2);border:1px solid var(--line);color:var(--text);border-radius:8px;padding:8px 10px}
+textarea{min-height:180px}label{display:block;color:var(--muted);font-size:12px}label input,label select{margin-top:5px;color:var(--text);font-size:14px}
+.toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:end}.toolbar>*{min-width:150px;flex:1}
+.badge{display:inline-block;padding:4px 8px;border-radius:999px;background:var(--panel2);font-size:12px}.muted{color:var(--muted)}.notice{background:var(--panel2);border-left:4px solid var(--accent);padding:13px;border-radius:8px}
+.stat{font-size:34px;font-weight:900;color:var(--accent)}.mini{font-size:12px;color:var(--muted)}
+.entity-head{display:flex;justify-content:space-between;align-items:center;gap:12px}.entity-grid{display:grid;grid-template-columns:1.05fr .95fr;gap:14px}
+.kv{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}.kv>div{background:var(--panel2);padding:10px;border-radius:9px}
+.matrix{overflow:auto}table{width:100%;border-collapse:collapse;min-width:760px}th,td{padding:8px;border-bottom:1px solid var(--line);text-align:left}th{font-size:12px;color:var(--muted);position:sticky;top:0;background:var(--panel)}
+.rank-item{display:grid;grid-template-columns:36px 1fr auto;gap:10px;align-items:start;padding:12px 0;border-bottom:1px solid var(--line)}.rank{width:30px;height:30px;border-radius:50%;display:grid;place-items:center;background:var(--accent);color:#111;font-weight:900}.score{color:var(--accent);font-weight:900}
+.warn{color:#ff9aa9}.good{color:#84e2b4}.team-card{border:1px solid var(--line);border-radius:12px;padding:14px;background:var(--panel2)}.chips span{display:inline-block;padding:6px 10px;border-radius:999px;background:#293343;margin:4px}
+.progress{height:8px;background:#26303d;border-radius:999px;overflow:hidden}.progress i{display:block;height:100%;background:var(--accent)}.right{text-align:right}
+@media(max-width:950px){.app{grid-template-columns:1fr}aside{position:static;height:auto}nav{display:flex;overflow:auto}nav button{min-width:max-content}.grid.two,.grid.three,.grid.four,.entity-grid,.kv{grid-template-columns:1fr}main{padding:14px}}
+
+.import-layout{display:grid;grid-template-columns:360px 1fr;gap:14px}
+.dropzone{border:2px dashed var(--line);border-radius:14px;padding:22px;text-align:center;background:var(--panel2);cursor:pointer}
+.dropzone.drag{border-color:var(--accent);background:#30291b}
+.file-list{max-height:360px;overflow:auto}
+.file-item{display:grid;grid-template-columns:48px 1fr auto;gap:9px;align-items:center;padding:8px;border-bottom:1px solid var(--line);cursor:pointer}
+.file-item.active{background:var(--panel2)}
+.thumb{width:48px;height:48px;object-fit:cover;border-radius:7px;background:#000}
+.import-canvas-wrap{position:relative;overflow:auto;background:#05070a;border:1px solid var(--line);border-radius:10px;min-height:280px;display:grid;place-items:center}
+#importCanvas{max-width:100%;height:auto;cursor:crosshair}
+.crop-hint{font-size:12px;color:var(--muted);margin-top:7px}
+.detected-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.detect-card{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:12px}
+.conf-high{color:var(--green)}.conf-mid{color:var(--yellow)}.conf-low{color:var(--red)}
+.change-table input,.change-table select{min-width:90px}
+.log-entry{padding:10px 0;border-bottom:1px solid var(--line)}
+.ocr-status{padding:10px;border-radius:8px;background:var(--panel2)}
+.raw-text{white-space:pre-wrap;font-family:ui-monospace,monospace;font-size:12px;max-height:180px;overflow:auto;background:#080b10;padding:10px;border-radius:8px}
+@media(max-width:1050px){.import-layout{grid-template-columns:1fr}.detected-grid{grid-template-columns:1fr}}
+
+
+.ocr-mode-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.ocr-mode{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:10px}
+.ocr-progress{height:12px;background:#111722;border-radius:999px;overflow:hidden;margin:8px 0}
+.ocr-progress i{display:block;height:100%;width:0;background:var(--accent);transition:width .2s}
+.zone-list{display:grid;gap:8px}
+.zone-row{display:grid;grid-template-columns:1.2fr repeat(4,.7fr) auto;gap:7px;align-items:center}
+.license-box{font-size:12px;max-height:210px;overflow:auto;white-space:pre-wrap;background:#080b10;padding:10px;border-radius:8px}
+@media(max-width:900px){.ocr-mode-grid{grid-template-columns:1fr}.zone-row{grid-template-columns:1fr 1fr}}
+</style>
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#0b0f15">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js" crossorigin="anonymous"></script>
+</head>
+<body>
+<div class="app">
+<aside>
+<div class="brand">⚔️ Hero Wars Advisor <small>PWA v0.7 · Tesseract.js OCR</small></div>
+<nav>
+<button class="active" data-view="dashboard">Dashboard</button>
+<button data-view="heroes">Helden-Editor</button>
+<button data-view="titans">Titanen-Editor</button>
+<button data-view="resources">Ressourcenplan</button>
+<button data-view="teams">Teamgenerator</button>
+<button data-view="recommendations">Top-10</button>
+<button data-view="warnings">Warnungen</button>
+<button data-view="importer">Screenshot-Import</button>
+<button data-view="transfer">Import / Export</button>
+</nav>
+</aside>
+<main>
+<header><h1 id="title">Dashboard</h1><button id="saveBtn">Speichern</button></header>
+
+<section id="dashboard" class="view active">
+<div class="grid four">
+<div class="card"><div class="mini">Teamlevel</div><div class="stat" id="dashLevel">–</div></div>
+<div class="card"><div class="mini">Aktive Helden</div><div class="stat" id="dashHeroes">–</div></div>
+<div class="card"><div class="mini">Aktive Titanen</div><div class="stat" id="dashTitans">–</div></div>
+<div class="card"><div class="mini">Warnungen</div><div class="stat" id="dashWarnings">–</div></div>
+</div>
+<div class="card"><h3>Aktuell wichtigste Maßnahme</h3><div id="dashFocus" class="notice"></div></div>
+<div class="grid two">
+<div class="card"><h3>Nächste 5 Investitionen</h3><div id="dashTop"></div></div>
+<div class="card"><h3>Empfohlene Teams</h3><div id="dashTeams"></div></div>
+</div>
+</section>
+
+<section id="heroes" class="view">
+<div class="card">
+<div class="toolbar">
+<label>Held<select id="heroSelect"></select></label>
+<label>Aktiv<input id="heroEnabled" type="checkbox"></label>
+<label>Level<input id="heroLevel" type="number" min="1" max="130"></label>
+<label>Sterne<input id="heroStars" type="number" min="1" max="6"></label>
+</div>
+</div>
+<div id="heroDetail"></div>
+</section>
+
+<section id="titans" class="view">
+<div class="card">
+<div class="toolbar">
+<label>Titan<select id="titanSelect"></select></label>
+<label>Aktiv<input id="titanEnabled" type="checkbox"></label>
+<label>Level<input id="titanLevel" type="number" min="1" max="130"></label>
+<label>Sterne<input id="titanStars" type="number" min="1" max="6"></label>
+</div>
+</div>
+<div id="titanDetail"></div>
+</section>
+
+<section id="resources" class="view">
+<div class="card">
+<h3>Verfügbare Ressourcen</h3>
+<div class="grid four">
+<label>Glyphenrunen<input id="resGlyph" type="number" min="0"></label>
+<label>Artefaktressourcen<input id="resArtifact" type="number" min="0"></label>
+<label>Skinsteine<input id="resSkin" type="number" min="0"></label>
+<label>Titanentränke<input id="resTitan" type="number" min="0"></label>
+</div>
+<button id="resourceCalc">Konkreten Plan berechnen</button>
+</div>
+<div class="card"><h3>Ausgabeplan</h3><div id="resourcePlan"></div></div>
+</section>
+
+<section id="teams" class="view">
+<div class="card">
+<div class="toolbar">
+<label>Spielmodus<select id="teamMode"><option>Turm</option><option>Arena</option><option>Hydra</option><option>Große Arena</option></select></label>
+<button id="teamCalc">Teams erzeugen</button>
+</div>
+</div>
+<div id="teamResults" class="grid three"></div>
+</section>
+
+<section id="recommendations" class="view"><div class="card"><h3>Top-10-Investitionen</h3><div id="top10"></div></div></section>
+<section id="warnings" class="view"><div class="card"><h3>Warnungen und mögliche Fehlverteilungen</h3><div id="warningList"></div></div></section>
+
+
+<section id="importer" class="view">
+<div class="card">
+<h3>Lokaler Screenshot-Importer</h3>
+<p>Bilddateien bleiben auf deinem Gerät. Es werden keine Bilder hochgeladen. Du wählst den Bildschirmtyp weiterhin selbst aus.</p>
+<div class="notice">
+<b>Erkennungstechnik:</b> Der Advisor nutzt – sofern dein Browser sie anbietet – die lokale <code>TextDetector</code>-Schnittstelle. 
+Ist sie nicht verfügbar, bleibt die Zuschneide-, Zuordnungs- und Kontrollansicht vollständig nutzbar; Werte müssen dann manuell bestätigt werden.
+</div>
+</div>
+
+<div class="import-layout">
+<div>
+<div class="card">
+<input id="shotInput" type="file" accept="image/*" multiple hidden>
+<div id="dropzone" class="dropzone">
+<b>Screenshots auswählen oder hierher ziehen</b><br>
+<span class="mini">Mehrere Bilder sind möglich.</span>
+</div>
+<div id="fileList" class="file-list"></div>
+</div>
+
+<div class="card">
+<h3>Import-Einstellungen</h3>
+<label>Bildschirmtyp
+<select id="screenType">
+<option value="hero-overview">Heldenübersicht</option>
+<option value="titan-overview">Titanenübersicht</option>
+<option value="hero-glyphs">Held – Glyphen</option>
+<option value="hero-artifacts">Held – Artefakte</option>
+<option value="hero-skins">Held – Skins</option>
+<option value="titan-detail">Einzelner Titan</option>
+</select>
+</label>
+<label>Zielheld / Zieltitan (bei Detailseiten)
+<select id="targetEntity"><option value="">Automatisch aus Text versuchen</option></select>
+</label>
+<div class="ocr-mode-grid">
+<label class="ocr-mode">Erkennungsmodus
+<select id="ocrMode">
+<option value="fast">Schnell</option>
+<option value="standard" selected>Standard</option>
+<option value="thorough">Gründlich</option>
+</select>
+</label>
+<label class="ocr-mode">Sprache
+<select id="ocrLanguage">
+<option value="deu+eng" selected>Deutsch + Englisch</option>
+<option value="deu">Deutsch</option>
+<option value="eng">Englisch</option>
+</select>
+</label>
+<label class="ocr-mode">Vorverarbeitung
+<select id="preprocessMode">
+<option value="auto" selected>Automatisch</option>
+<option value="gray">Graustufen</option>
+<option value="threshold">Hoher Kontrast</option>
+<option value="none">Keine</option>
+</select>
+</label>
+</div>
+<div class="toolbar">
+<button id="detectBtn">Mit Tesseract lokal erkennen</button>
+<button id="cancelOcrBtn" class="danger">Abbrechen</button>
+<button id="cropBtn" class="secondary">Auf Auswahl zuschneiden</button>
+<button id="resetCropBtn" class="secondary">Originalbild</button>
+</div>
+<div class="ocr-progress"><i id="ocrProgressBar"></i></div>
+<div id="ocrStatus" class="ocr-status mini">Noch kein Bild ausgewählt.</div>
+</div>
+</div>
+
+<div>
+<div class="card">
+<h3>Bildvorschau und Zuschnitt</h3>
+<div class="import-canvas-wrap"><canvas id="importCanvas"></canvas></div>
+<div class="crop-hint">Mit der Maus oder dem Finger ein Rechteck ziehen. Danach „Auf Auswahl zuschneiden“ klicken.</div>
+</div>
+
+<div class="card">
+<h3>Erkannter Text</h3>
+<div id="rawText" class="raw-text">Noch keine Erkennung.</div>
+</div>
+
+<div class="card">
+<h3>Kontrollansicht</h3>
+<p class="mini">Nur angehakte und tatsächlich veränderte Werte werden übernommen. Unsichere Felder sind markiert.</p>
+<div class="matrix"><table class="change-table">
+<thead><tr><th>Übernehmen</th><th>Einheit</th><th>Feld</th><th>Alt</th><th>Erkannt / Korrektur</th><th>Sicherheit</th></tr></thead>
+<tbody id="changeRows"></tbody>
+</table></div>
+<div class="toolbar">
+<button id="applyChangesBtn">Bestätigen und Account aktualisieren</button>
+<button id="clearChangesBtn" class="secondary">Vorschläge verwerfen</button>
+</div>
+</div>
+</div>
+</div>
+
+<div class="grid two">
+<div class="card">
+<h3>Erkennungsbereiche</h3>
+<p class="mini">Die Bereiche gelten relativ zur Bildgröße. Eigene Einstellungen werden pro Bildschirmtyp auf diesem Gerät gespeichert.</p>
+<div id="zoneList" class="zone-list"></div>
+<div class="toolbar"><button id="saveZonesBtn" class="secondary">Bereiche speichern</button><button id="resetZonesBtn" class="secondary">Standardbereiche</button></div>
+</div>
+<div class="card">
+<h3>Datenschutz und Lizenzen</h3>
+<p>Die OCR-Berechnung läuft im Browser auf deinem Gerät. Beim ersten Einsatz werden die fest angepinnten Tesseract-Komponenten und Sprachmodelle geladen und anschließend vom Browser zwischengespeichert. Screenshots werden nicht hochgeladen.</p>
+<details><summary>Drittanbieter-Lizenzen anzeigen</summary><div class="license-box">Tesseract.js – Apache License 2.0
+Tesseract.js Core – Apache License 2.0
+Tesseract/Tessdata – Apache License 2.0
+Enthaltene Hilfsbibliotheken in den minifizierten Bundles können MIT- oder BSD-Lizenzen verwenden.
+
+Die vollständigen Hinweise liegen zusätzlich im Ordner THIRD_PARTY_LICENSES.</div></details>
+</div>
+</div>
+
+<div class="grid two">
+<div class="card">
+<h3>Unbekannte oder nicht zugeordnete Werte</h3>
+<div id="unknownValues" class="raw-text">Keine.</div>
+</div>
+<div class="card">
+<h3>Änderungsprotokoll</h3>
+<div class="toolbar"><button id="exportLogBtn" class="secondary">Protokoll exportieren</button><button id="clearLogBtn" class="danger">Protokoll löschen</button></div>
+<div id="changeLog"></div>
+</div>
+</div>
+</section>
+
+<section id="transfer" class="view">
+<div class="card">
+<h3>Backup und Gerätewechsel</h3>
+<p>Der Export enthält deinen vollständigen Accountstand im stabilen Format <b>schemaVersion 1</b>. Die Datei kann später auch von der Android-App gelesen werden.</p>
+</div>
+<div class="grid two">
+<div class="card">
+<h3>Export v1</h3>
+<div class="toolbar">
+<button id="exportV1DownloadBtn">Export-v1-Datei herunterladen</button>
+<button id="exportV1PreviewBtn" class="secondary">Vorschau erzeugen</button>
+</div>
+<p class="mini">Dateiname: <code>hero-wars-advisor-account-v1.json</code></p>
+<textarea id="exportBox" readonly placeholder="Die optionale Vorschau erscheint hier."></textarea>
+</div>
+<div class="card">
+<h3>Import aus Datei</h3>
+<input id="importFileInput" type="file" accept=".json,application/json">
+<div id="importFileInfo" class="notice" style="margin-top:10px">Noch keine Datei ausgewählt.</div>
+<div class="toolbar" style="margin-top:10px">
+<button id="importFileBtn">Ausgewählte Datei importieren</button>
+<button id="legacyDataBtn" class="secondary">Alte Browserdaten suchen</button>
+<button id="resetBtn" class="danger">Leeren Account herstellen</button>
+</div>
+<p class="mini">Vor der Übernahme werden Format und Grundstruktur geprüft. Unterstützt werden Export-v1-Dateien sowie ältere rohe Account-JSONs aus v0.2–v0.4.</p>
+</div>
+</div>
+</section>
+</main>
+</div>
+
+<script>
+const DB={"heroRules":{"Astaroth":{"role":"Tank","priority":100,"glyph_order":["Rüstung","Gesundheit","Stärke","Magieverteidigung","Magischer Angriff"],"artifact_order":["Waffe","Buch","Ring"],"skin_names":["Standard","Donner","Barbar"],"team_tags":["tank","general","tower","arena"],"notes":"Frontlinie stabilisieren. Defensive Investitionen haben Vorrang."},"Dante":{"role":"Haupt-DPS","priority":112,"glyph_order":["Physischer Angriff","Rüstungsdurchdringung","Beweglichkeit","Gesundheit","Rüstung"],"artifact_order":["Waffe","Buch","Ring"],"skin_names":["Standard","Winter","Solar"],"team_tags":["dps","physical","dodge","tower","arena","hydra"],"notes":"Dein Carry. Offensive Schwellen zuerst erreichen."},"Jorgen":{"role":"Kontrolle / Support","priority":86,"glyph_order":["Gesundheit","Rüstung","Magieverteidigung","Magischer Angriff","Ausweichen"],"artifact_order":["Buch","Ring","Waffe"],"skin_names":["Standard","Champion"],"team_tags":["support","control","tower","arena"],"notes":"Überleben vor Schaden. Energiekontrolle ist sein eigentlicher Wert."},"Folio":{"role":"Magischer Schaden / Kontrolle","priority":76,"glyph_order":["Magischer Angriff","Intelligenz","Gesundheit","Magieverteidigung","Rüstung"],"artifact_order":["Waffe","Buch","Ring"],"skin_names":["Standard","Dämon"],"team_tags":["magic","control","tower"],"notes":"Auf deinem Account wegen hoher Sterne effizient."},"Maya":{"role":"Heilung / Schaden","priority":55,"glyph_order":["Gesundheit","Magischer Angriff","Intelligenz","Magieverteidigung","Rüstung"],"artifact_order":["Waffe","Buch","Ring"],"skin_names":["Standard","Winter"],"team_tags":["heal","tower","campaign"],"notes":"Nützlich, aber nicht überinvestieren."},"Octavia":{"role":"Dodge-Support","priority":84,"glyph_order":["Gesundheit","Ausweichen","Beweglichkeit","Magieverteidigung","Rüstung"],"artifact_order":["Waffe","Buch","Ring"],"skin_names":["Standard"],"team_tags":["support","dodge","arena"],"notes":"Sehr starke Dante-Synergie, sobald spielbar."},"Fafnir":{"role":"Physischer Support","priority":70,"glyph_order":["Gesundheit","Stärke","Magieverteidigung","Rüstung","Physischer Angriff"],"artifact_order":["Waffe","Buch","Ring"],"skin_names":["Standard"],"team_tags":["support","physical","arena","hydra"],"notes":"Mit einem Stern noch vorbereiten, nicht überinvestieren."},"Gesichtsloser":{"role":"Kontrolle / Kopie","priority":48,"glyph_order":["Magischer Angriff","Gesundheit","Intelligenz","Magieverteidigung","Rüstung"],"artifact_order":["Waffe","Buch","Ring"],"skin_names":["Standard"],"team_tags":["control","magic","tower"],"notes":"Flexibler Reserveheld."},"Ginger":{"role":"Reserve-DPS","priority":22,"glyph_order":["Physischer Angriff","Beweglichkeit","Rüstungsdurchdringung","Gesundheit","Rüstung"],"artifact_order":["Waffe","Buch","Ring"],"skin_names":["Standard"],"team_tags":["physical","hydra"],"notes":"Vorhandene Investitionen nutzen, aber nicht neu finanzieren."},"Galahad":{"role":"Krieger / Tank","priority":18,"glyph_order":["Rüstung","Gesundheit","Stärke","Physischer Angriff","Magieverteidigung"],"artifact_order":["Waffe","Buch","Ring"],"skin_names":["Standard"],"team_tags":["tank","hydra"],"notes":"Nur Reserve."},"Thea":{"role":"Heiler","priority":24,"glyph_order":["Gesundheit","Magischer Angriff","Intelligenz","Magieverteidigung","Rüstung"],"artifact_order":["Waffe","Buch","Ring"],"skin_names":["Standard"],"team_tags":["heal","hydra"],"notes":"Hydra-/Reserveheilerin."},"Jhu":{"role":"Hydra-DPS","priority":58,"glyph_order":["Physischer Angriff","Gesundheit","Beweglichkeit","Rüstungsdurchdringung","Rüstung"],"artifact_order":["Waffe","Buch","Ring"],"skin_names":["Standard"],"team_tags":["hydra","physical"],"notes":"Spezialist gegen Hydra."},"Morrigan":{"role":"Support / Anti-Wiederbelebung","priority":36,"glyph_order":["Gesundheit","Magischer Angriff","Intelligenz","Magieverteidigung","Rüstung"],"artifact_order":["Waffe","Buch","Ring"],"skin_names":["Standard"],"team_tags":["support","hydra"],"notes":"Situativ; ohne Corvus kein Hauptprojekt."},"Aurora":{"role":"Dodge-Tank","priority":30,"glyph_order":["Ausweichen","Gesundheit","Magieverteidigung","Rüstung","Stärke"],"artifact_order":["Waffe","Buch","Ring"],"skin_names":["Standard"],"team_tags":["tank","hydra"],"notes":"Reserve."},"Artemis":{"role":"Physischer DPS","priority":28,"glyph_order":["Physischer Angriff","Beweglichkeit","Rüstungsdurchdringung","Gesundheit","Rüstung"],"artifact_order":["Waffe","Buch","Ring"],"skin_names":["Standard"],"team_tags":["physical","hydra"],"notes":"Reserve."},"Phobos":{"role":"Kontrolle / Magieschaden","priority":25,"glyph_order":["Magischer Angriff","Intelligenz","Gesundheit","Magieverteidigung","Rüstung"],"artifact_order":["Waffe","Buch","Ring"],"skin_names":["Standard"],"team_tags":["control","hydra"],"notes":"Situativ."}},"titanRules":{"Sigurd":{"priority":112,"role":"Wassertank","skin_names":["Standard","Ur"],"artifact_names":["Waffe","Krone","Siegel"],"tags":["tank","water","dungeon"]},"Iyari":{"priority":96,"role":"Licht-Support","skin_names":["Standard","Ur"],"artifact_names":["Waffe","Krone","Siegel"],"tags":["support","heal","dungeon"]},"Nova":{"priority":86,"role":"Wasser-Kontrolle","skin_names":["Standard","Ur"],"artifact_names":["Waffe","Krone","Siegel"],"tags":["control","water","dungeon"]},"Eden":{"priority":72,"role":"Erd-Supertitan","skin_names":["Standard"],"artifact_names":["Waffe","Krone","Siegel"],"tags":["earth","control"]},"Moloch":{"priority":36,"role":"Feuertank","skin_names":["Standard"],"artifact_names":["Waffe","Krone","Siegel"],"tags":["fire","tank"]},"Keros":{"priority":16,"role":"Dunkel-DPS","skin_names":["Standard"],"artifact_names":["Waffe","Krone","Siegel"],"tags":["dark","dps"]},"Avalon":{"priority":38,"role":"Erd-Support","skin_names":["Standard"],"artifact_names":["Waffe","Krone","Siegel"],"tags":["earth","support"]},"Sylva":{"priority":42,"role":"Erd-DPS","skin_names":["Standard"],"artifact_names":["Waffe","Krone","Siegel"],"tags":["earth","dps"]},"Mairi":{"priority":30,"role":"Wasser-Support","skin_names":["Standard"],"artifact_names":["Waffe","Krone","Siegel"],"tags":["water","support"]},"Ignis":{"priority":30,"role":"Feuer-Support","skin_names":["Standard"],"artifact_names":["Waffe","Krone","Siegel"],"tags":["fire","support"]},"Vulcan":{"priority":28,"role":"Feuer-DPS","skin_names":["Standard"],"artifact_names":["Waffe","Krone","Siegel"],"tags":["fire","dps"]}},"default":{"meta":{"teamLevel":1,"budget":20,"glyphRunes":0,"artifactResources":0,"skinStones":0,"titanPotions":0},"heroes":{"Astaroth":{"level":1,"stars":1,"glyphs":{"Rüstung":0,"Gesundheit":0,"Stärke":0,"Magieverteidigung":0,"Magischer Angriff":0},"artifacts":{"Waffe":1,"Buch":1,"Ring":1},"skins":{"Standard":1,"Donner":1,"Barbar":1},"enabled":false},"Dante":{"level":1,"stars":1,"glyphs":{"Physischer Angriff":0,"Rüstungsdurchdringung":0,"Beweglichkeit":0,"Gesundheit":0,"Rüstung":0},"artifacts":{"Waffe":1,"Buch":1,"Ring":1},"skins":{"Standard":1,"Winter":1,"Solar":1},"enabled":false},"Jorgen":{"level":1,"stars":1,"glyphs":{"Gesundheit":0,"Rüstung":0,"Magieverteidigung":0,"Magischer Angriff":0,"Ausweichen":0},"artifacts":{"Waffe":1,"Buch":1,"Ring":1},"skins":{"Standard":1,"Champion":1},"enabled":false},"Folio":{"level":1,"stars":1,"glyphs":{"Magischer Angriff":0,"Intelligenz":0,"Gesundheit":0,"Magieverteidigung":0,"Rüstung":0},"artifacts":{"Waffe":1,"Buch":1,"Ring":1},"skins":{"Standard":1,"Dämon":1},"enabled":false},"Maya":{"level":1,"stars":1,"glyphs":{"Gesundheit":0,"Magischer Angriff":0,"Intelligenz":0,"Magieverteidigung":0,"Rüstung":0},"artifacts":{"Waffe":1,"Buch":1,"Ring":1},"skins":{"Standard":1,"Winter":1},"enabled":false},"Octavia":{"level":1,"stars":1,"glyphs":{"Gesundheit":0,"Ausweichen":0,"Beweglichkeit":0,"Magieverteidigung":0,"Rüstung":0},"artifacts":{"Waffe":1,"Buch":1,"Ring":1},"skins":{"Standard":1},"enabled":false},"Fafnir":{"level":1,"stars":1,"glyphs":{"Gesundheit":0,"Stärke":0,"Magieverteidigung":0,"Rüstung":0,"Physischer Angriff":0},"artifacts":{"Waffe":1,"Buch":1,"Ring":1},"skins":{"Standard":1},"enabled":false},"Gesichtsloser":{"level":1,"stars":1,"glyphs":{"Magischer Angriff":0,"Gesundheit":0,"Intelligenz":0,"Magieverteidigung":0,"Rüstung":0},"artifacts":{"Waffe":1,"Buch":1,"Ring":1},"skins":{"Standard":1},"enabled":false},"Ginger":{"level":1,"stars":1,"glyphs":{"Physischer Angriff":0,"Beweglichkeit":0,"Rüstungsdurchdringung":0,"Gesundheit":0,"Rüstung":0},"artifacts":{"Waffe":1,"Buch":1,"Ring":1},"skins":{"Standard":1},"enabled":false},"Galahad":{"level":1,"stars":1,"glyphs":{"Rüstung":0,"Gesundheit":0,"Stärke":0,"Physischer Angriff":0,"Magieverteidigung":0},"artifacts":{"Waffe":1,"Buch":1,"Ring":1},"skins":{"Standard":1},"enabled":false},"Thea":{"level":1,"stars":1,"glyphs":{"Gesundheit":0,"Magischer Angriff":0,"Intelligenz":0,"Magieverteidigung":0,"Rüstung":0},"artifacts":{"Waffe":1,"Buch":1,"Ring":1},"skins":{"Standard":1},"enabled":false},"Jhu":{"level":1,"stars":1,"glyphs":{"Physischer Angriff":0,"Gesundheit":0,"Beweglichkeit":0,"Rüstungsdurchdringung":0,"Rüstung":0},"artifacts":{"Waffe":1,"Buch":1,"Ring":1},"skins":{"Standard":1},"enabled":false},"Morrigan":{"level":1,"stars":1,"glyphs":{"Gesundheit":0,"Magischer Angriff":0,"Intelligenz":0,"Magieverteidigung":0,"Rüstung":0},"artifacts":{"Waffe":1,"Buch":1,"Ring":1},"skins":{"Standard":1},"enabled":false},"Aurora":{"level":1,"stars":1,"glyphs":{"Ausweichen":0,"Gesundheit":0,"Magieverteidigung":0,"Rüstung":0,"Stärke":0},"artifacts":{"Waffe":1,"Buch":1,"Ring":1},"skins":{"Standard":1},"enabled":false},"Artemis":{"level":1,"stars":1,"glyphs":{"Physischer Angriff":0,"Beweglichkeit":0,"Rüstungsdurchdringung":0,"Gesundheit":0,"Rüstung":0},"artifacts":{"Waffe":1,"Buch":1,"Ring":1},"skins":{"Standard":1},"enabled":false},"Phobos":{"level":1,"stars":1,"glyphs":{"Magischer Angriff":0,"Intelligenz":0,"Gesundheit":0,"Magieverteidigung":0,"Rüstung":0},"artifacts":{"Waffe":1,"Buch":1,"Ring":1},"skins":{"Standard":1},"enabled":false}},"titans":{"Sigurd":{"level":1,"stars":1,"skins":{"Standard":1,"Ur":1},"artifacts":{"Waffe":1,"Krone":1,"Siegel":1},"enabled":false},"Iyari":{"level":1,"stars":1,"skins":{"Standard":1,"Ur":1},"artifacts":{"Waffe":1,"Krone":1,"Siegel":1},"enabled":false},"Nova":{"level":1,"stars":1,"skins":{"Standard":1,"Ur":1},"artifacts":{"Waffe":1,"Krone":1,"Siegel":1},"enabled":false},"Eden":{"level":1,"stars":1,"skins":{"Standard":1},"artifacts":{"Waffe":1,"Krone":1,"Siegel":1},"enabled":false},"Moloch":{"level":1,"stars":1,"skins":{"Standard":1},"artifacts":{"Waffe":1,"Krone":1,"Siegel":1},"enabled":false},"Keros":{"level":1,"stars":1,"skins":{"Standard":1},"artifacts":{"Waffe":1,"Krone":1,"Siegel":1},"enabled":false},"Avalon":{"level":1,"stars":1,"skins":{"Standard":1},"artifacts":{"Waffe":1,"Krone":1,"Siegel":1},"enabled":false},"Sylva":{"level":1,"stars":1,"skins":{"Standard":1},"artifacts":{"Waffe":1,"Krone":1,"Siegel":1},"enabled":false},"Mairi":{"level":1,"stars":1,"skins":{"Standard":1},"artifacts":{"Waffe":1,"Krone":1,"Siegel":1},"enabled":false},"Ignis":{"level":1,"stars":1,"skins":{"Standard":1},"artifacts":{"Waffe":1,"Krone":1,"Siegel":1},"enabled":false},"Vulcan":{"level":1,"stars":1,"skins":{"Standard":1},"artifacts":{"Waffe":1,"Krone":1,"Siegel":1},"enabled":false}}}};
+let account=JSON.parse(localStorage.getItem('hwa_v06_account')||'null')||structuredClone(DB.default); window.account=account;
+const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
+$$('[data-view]').forEach(b=>b.onclick=()=>{$$('[data-view]').forEach(x=>x.classList.remove('active'));b.classList.add('active');$$('.view').forEach(v=>v.classList.remove('active'));$('#'+b.dataset.view).classList.add('active');$('#title').textContent=b.textContent});
+function save(){window.account=account;localStorage.setItem('hwa_v06_account',JSON.stringify(account));if(window.HwaDb)window.HwaDb.put('account',account);renderAll();}
+$('#saveBtn').onclick=save;
+
+function migrate(obj){
+ if(!obj.meta) throw new Error('Kein gültiger Account');
+ // v0.2 hero structure -> v0.3
+ Object.entries(obj.heroes||{}).forEach(([n,h])=>{
+   if(h.glyph_main!==undefined && !h.glyphs){
+     const r=DB.heroRules[n]||{glyph_order:['Hauptglyphe','Sekundärglyphe']};
+     h.glyphs={}; h.glyphs[r.glyph_order[0]]=h.glyph_main||0;
+     r.glyph_order.slice(1).forEach(x=>h.glyphs[x]=0);
+     h.artifacts={Waffe:h.artifact||1,Buch:1,Ring:1};
+     h.skins={Standard:h.skin||1};
+     delete h.glyph_main; delete h.glyph_secondary; delete h.artifact; delete h.skin;
+   }
+ });
+ Object.entries(obj.titans||{}).forEach(([n,t])=>{
+   if(typeof t.skin==='number' && !t.skins){t.skins={Standard:t.skin};t.artifacts={Waffe:t.artifact||1,Krone:1,Siegel:1};delete t.skin;delete t.artifact;}
+ });
+ obj.meta.glyphRunes ??= 0; obj.meta.artifactResources ??= 0; obj.meta.skinStones ??= 0; obj.meta.titanPotions ??= 0;
+ return obj;
+}
+account=migrate(account);
+
+function pct(v,max){return Math.max(0,Math.min(100,Math.round(v/max*100)))}
+function heroPowerScore(n,h){
+ const r=DB.heroRules[n]||{priority:20};
+ const g=Object.values(h.glyphs||{}).reduce((a,b)=>a+b,0);
+ const a=Object.values(h.artifacts||{}).reduce((x,y)=>x+y,0);
+ const s=Object.values(h.skins||{}).reduce((x,y)=>x+y,0);
+ return r.priority+h.level*.7+h.stars*8+g*.25+a*.12+s*.08;
+}
+function titanPowerScore(n,t){
+ const r=DB.titanRules[n]||{priority:20};
+ const a=Object.values(t.artifacts||{}).reduce((x,y)=>x+y,0);
+ const s=Object.values(t.skins||{}).reduce((x,y)=>x+y,0);
+ return r.priority+t.level*.9+t.stars*8+a*.15+s*.1;
+}
+
+function recommendations(){
+ let rec=[];
+ Object.entries(account.heroes).forEach(([n,h])=>{
+   if(!h.enabled)return; const r=DB.heroRules[n]||{priority:20,glyph_order:Object.keys(h.glyphs||{}),artifact_order:['Waffe','Buch','Ring']};
+   if(h.level<account.meta.teamLevel) rec.push({type:'Level',score:r.priority+25+(account.meta.teamLevel-h.level),title:`${n} auf Teamlevel ${account.meta.teamLevel} bringen`,why:`Aktuell Level ${h.level}.`});
+   const order=r.glyph_order||Object.keys(h.glyphs||{});
+   order.forEach((g,i)=>{let v=h.glyphs?.[g]||0; let target=i===0?40:(i===1?30:20); if(v<target)rec.push({type:'Glyphe',score:r.priority-i*8+(target-v)*.8,title:`${n}: ${g} auf ${Math.min(target,v+5)}`,why:`Reihenfolge #${i+1}, aktuell ${v}/50.`});});
+   (r.artifact_order||['Waffe','Buch','Ring']).forEach((a,i)=>{let v=h.artifacts?.[a]||0;let target=i===0?25:20;if(v<target)rec.push({type:'Artefakt',score:r.priority-5-i*7+(target-v)*.5,title:`${n}: ${a} auf ${Math.min(target,v+3)}`,why:`Artefakt aktuell ${v}.`});});
+   if(h.stars<3 && ['Dante','Jorgen','Fafnir','Octavia'].includes(n)) rec.push({type:'Seelensteine',score:r.priority+14,title:`${n}-Seelensteine sammeln`,why:`Nur ${h.stars} Stern(e); keine Zufallstruhen erzwingen.`});
+ });
+ const activeTitans=Object.entries(account.titans).filter(([n,t])=>t.enabled);
+ const maxTitan=Math.max(1,...activeTitans.map(([n,t])=>t.level));
+ activeTitans.forEach(([n,t])=>{
+   const r=DB.titanRules[n]||{priority:20};
+   const target=n==='Sigurd'?maxTitan:Math.max(1,(account.titans.Sigurd?.level||maxTitan)-3);
+   if(t.level<target)rec.push({type:'Titanlevel',score:r.priority+(target-t.level),title:`${n} auf Level ${Math.min(target,t.level+3)}`,why:`Zielwert ca. ${target}.`});
+   if(['Sigurd','Iyari'].includes(n))Object.entries(t.skins||{}).forEach(([s,v])=>{if(v<10)rec.push({type:'Titan-Skin',score:r.priority-8+(10-v),title:`${n}: ${s}-Skin auf ${Math.min(10,v+3)}`,why:`Aktuell ${v}/60.`});});
+ });
+ return rec.sort((a,b)=>b.score-a.score);
+}
+
+function warnings(){
+ let w=[];
+ // Broad investment warnings
+ const activeHeroes=Object.entries(account.heroes).filter(([n,h])=>h.enabled);
+ if(activeHeroes.length>8) w.push('Mehr als 8 Helden sind aktiv. Für deinen Account ist das zu breit.');
+ ['Ginger','Galahad','Thea','Aurora','Artemis','Phobos'].forEach(n=>{
+   const h=account.heroes[n]; if(!h)return;
+   const spend=Object.values(h.glyphs||{}).reduce((a,b)=>a+b,0)+Object.values(h.artifacts||{}).reduce((a,b)=>a+b,0);
+   if(h.enabled && spend>60) w.push(`${n} ist als Reserve aktiv und bereits relativ teuer ausgebaut.`);
+ });
+ const j=account.heroes.Jorgen;if(j && (j.glyphs['Magischer Angriff']||0)>(j.glyphs['Gesundheit']||0)+8)w.push('Jorgen hat deutlich mehr Magischen Angriff als Gesundheit. Defensive Werte zuerst.');
+ const a=account.heroes.Astaroth;if(a && (a.glyphs['Magischer Angriff']||0)>5)w.push('Astaroths Magischer Angriff ist für deinen aktuellen Plan zu hoch priorisiert.');
+ const d=account.heroes.Dante;if(d && (d.glyphs['Physischer Angriff']||0)<25)w.push('Dantes Physischer Angriff ist für einen Haupt-DPS zu niedrig.');
+ if(account.titans.Keros?.enabled)w.push('Keros ist aktiv, obwohl dein Licht-/Dunkel-Team noch nicht vollständig ist.');
+ if(account.meta.budget>20)w.push('Das eingetragene Monatsbudget liegt über deiner selbst gesetzten Grenze von 20 €.');
+ return w;
+}
+
+function resourcePlan(){
+ const out=[];
+ let glyph=+account.meta.glyphRunes||0, art=+account.meta.artifactResources||0, skin=+account.meta.skinStones||0, pot=+account.meta.titanPotions||0;
+ const rec=recommendations();
+ const glyphRecs=rec.filter(x=>x.type==='Glyphe').slice(0,4);
+ if(glyph>0){
+   let each=Math.max(1,Math.floor(glyph/Math.max(1,glyphRecs.length)));
+   glyphRecs.forEach((r,i)=>out.push({title:r.title,why:`Ca. ${each.toLocaleString('de-DE')} Runen vormerken. ${r.why}`}));
+ }
+ const artRecs=rec.filter(x=>x.type==='Artefakt').slice(0,3);
+ if(art>0)artRecs.forEach((r,i)=>out.push({title:r.title,why:`Artefaktbudget priorisiert. ${r.why}`}));
+ if(skin>0)out.push({title:'Skinsteine nicht breit verteilen',why:'Zuerst Kernheld prüfen; bei Titanen Sigurd/Iyari priorisieren.'});
+ const titanRecs=rec.filter(x=>x.type==='Titanlevel').slice(0,3);
+ if(pot>0)titanRecs.forEach(r=>out.push({title:r.title,why:`Titanentränke zuerst hier einsetzen. ${r.why}`}));
+ return out.slice(0,10);
+}
+
+function teams(mode){
+ const active=Object.entries(account.heroes).filter(([n,h])=>h.enabled).sort((a,b)=>heroPowerScore(b[0],b[1])-heroPowerScore(a[0],a[1]));
+ const names=active.map(x=>x[0]);
+ function pick(pref,used=new Set()){let out=[];pref.forEach(n=>{if(names.includes(n)&&!used.has(n)&&out.length<5){out.push(n);used.add(n)}});names.forEach(n=>{if(!used.has(n)&&out.length<5){out.push(n);used.add(n)}});return out;}
+ if(mode==='Turm')return [pick(['Astaroth','Dante','Jorgen','Folio','Maya','Octavia','Fafnir'])];
+ if(mode==='Arena')return [pick(['Astaroth','Dante','Octavia','Jorgen','Fafnir','Folio','Maya'])];
+ if(mode==='Hydra'){
+   let used=new Set();
+   const t1=pick(['Astaroth','Dante','Folio','Jorgen','Maya'],used);
+   const t2=pick(['Aurora','Jhu','Thea','Artemis','Gesichtsloser'],used);
+   const t3=pick(['Galahad','Ginger','Morrigan','Octavia','Phobos','Fafnir'],used);
+   return [t1,t2,t3];
+ }
+ if(mode==='Große Arena'){
+   let used=new Set();
+   return [
+     pick(['Astaroth','Dante','Octavia','Jorgen','Fafnir'],used),
+     pick(['Galahad','Ginger','Folio','Maya','Gesichtsloser'],used),
+     pick(['Aurora','Jhu','Thea','Artemis','Phobos','Morrigan'],used)
+   ];
+ }
+ return [];
+}
+
+function heroEditor(){
+ const names=Object.keys(account.heroes); $('#heroSelect').innerHTML=names.map(n=>`<option>${n}</option>`).join('');
+ $('#heroSelect').onchange=renderHero; renderHero();
+}
+function renderHero(){
+ const n=$('#heroSelect').value||Object.keys(account.heroes)[0],h=account.heroes[n],r=DB.heroRules[n];
+ $('#heroEnabled').checked=h.enabled;$('#heroLevel').value=h.level;$('#heroStars').value=h.stars;
+ $('#heroEnabled').onchange=e=>h.enabled=e.target.checked;$('#heroLevel').onchange=e=>h.level=+e.target.value;$('#heroStars').onchange=e=>h.stars=+e.target.value;
+ const glyphRows=(r.glyph_order||Object.keys(h.glyphs)).map((g,i)=>`<tr><td>${i+1}</td><td>${g}</td><td><input type="number" min="0" max="50" value="${h.glyphs[g]||0}" data-hg="${g}"></td><td><div class="progress"><i style="width:${pct(h.glyphs[g]||0,50)}%"></i></div></td></tr>`).join('');
+ const artRows=(r.artifact_order||Object.keys(h.artifacts)).map((a,i)=>`<tr><td>${i+1}</td><td>${a}</td><td><input type="number" min="0" max="130" value="${h.artifacts[a]||0}" data-ha="${a}"></td></tr>`).join('');
+ const skinRows=Object.keys(h.skins).map(s=>`<tr><td>${s}</td><td><input type="number" min="1" max="60" value="${h.skins[s]||1}" data-hs="${s}"></td></tr>`).join('');
+ $('#heroDetail').innerHTML=`<div class="entity-grid">
+ <div class="card"><div class="entity-head"><div><h2>${n}</h2><span class="badge">${r.role}</span></div><b>${r.priority} Priorität</b></div><p>${r.notes}</p><h3>Glyphen</h3><div class="matrix"><table><tr><th>#</th><th>Glyphe</th><th>Level</th><th>Fortschritt</th></tr>${glyphRows}</table></div></div>
+ <div><div class="card"><h3>Artefakte</h3><table><tr><th>#</th><th>Artefakt</th><th>Level</th></tr>${artRows}</table></div><div class="card"><h3>Skins</h3><table><tr><th>Skin</th><th>Level</th></tr>${skinRows}</table></div></div></div>`;
+ $$('[data-hg]').forEach(i=>i.onchange=e=>h.glyphs[e.target.dataset.hg]=+e.target.value);
+ $$('[data-ha]').forEach(i=>i.onchange=e=>h.artifacts[e.target.dataset.ha]=+e.target.value);
+ $$('[data-hs]').forEach(i=>i.onchange=e=>h.skins[e.target.dataset.hs]=+e.target.value);
+}
+
+function titanEditor(){
+ const names=Object.keys(account.titans); $('#titanSelect').innerHTML=names.map(n=>`<option>${n}</option>`).join('');
+ $('#titanSelect').onchange=renderTitan; renderTitan();
+}
+function renderTitan(){
+ const n=$('#titanSelect').value||Object.keys(account.titans)[0],t=account.titans[n],r=DB.titanRules[n];
+ $('#titanEnabled').checked=t.enabled;$('#titanLevel').value=t.level;$('#titanStars').value=t.stars;
+ $('#titanEnabled').onchange=e=>t.enabled=e.target.checked;$('#titanLevel').onchange=e=>t.level=+e.target.value;$('#titanStars').onchange=e=>t.stars=+e.target.value;
+ const skinRows=Object.keys(t.skins).map(s=>`<tr><td>${s}</td><td><input type="number" min="1" max="60" value="${t.skins[s]||1}" data-ts="${s}"></td></tr>`).join('');
+ const artRows=Object.keys(t.artifacts).map(a=>`<tr><td>${a}</td><td><input type="number" min="1" max="130" value="${t.artifacts[a]||1}" data-ta="${a}"></td></tr>`).join('');
+ $('#titanDetail').innerHTML=`<div class="entity-grid"><div class="card"><h2>${n}</h2><span class="badge">${r.role}</span><p>Priorität: <b>${r.priority}</b></p><h3>Skins</h3><table><tr><th>Skin</th><th>Level</th></tr>${skinRows}</table></div><div class="card"><h3>Artefakte</h3><table><tr><th>Artefakt</th><th>Level</th></tr>${artRows}</table></div></div>`;
+ $$('[data-ts]').forEach(i=>i.onchange=e=>t.skins[e.target.dataset.ts]=+e.target.value);
+ $$('[data-ta]').forEach(i=>i.onchange=e=>t.artifacts[e.target.dataset.ta]=+e.target.value);
+}
+
+function renderTop(){
+ const rec=recommendations().slice(0,10);
+ const html=rec.map((r,i)=>`<div class="rank-item"><div class="rank">${i+1}</div><div><b>${r.title}</b><div class="muted">${r.why}</div></div><div class="score">${Math.round(r.score)}</div></div>`).join('');
+ $('#top10').innerHTML=html;$('#dashTop').innerHTML=rec.slice(0,5).map((r,i)=>`<div class="rank-item"><div class="rank">${i+1}</div><div><b>${r.title}</b><div class="muted">${r.why}</div></div></div>`).join('');
+ $('#dashFocus').innerHTML=rec[0]?`<b>${rec[0].title}</b><br>${rec[0].why}`:'Keine Empfehlung.';
+}
+function renderWarnings(){
+ const w=warnings();$('#warningList').innerHTML=w.length?w.map(x=>`<p class="warn">⚠️ ${x}</p>`).join(''):'<p class="good">Keine offensichtlichen Fehlverteilungen erkannt.</p>';$('#dashWarnings').textContent=w.length;
+}
+function renderTeams(mode='Arena'){
+ const sets=teams(mode);
+ $('#teamResults').innerHTML=sets.map((t,i)=>`<div class="team-card"><h3>${sets.length>1?'Team '+(i+1):mode}</h3><div class="chips">${t.map(x=>`<span>${x}</span>`).join('')}</div><p class="mini">Gesamtscore: ${Math.round(t.reduce((s,n)=>s+heroPowerScore(n,account.heroes[n]),0))}</p></div>`).join('');
+ const dash=teams('Arena')[0]||[];$('#dashTeams').innerHTML=`<div class="team-card"><b>Arena</b><div class="chips">${dash.map(x=>`<span>${x}</span>`).join('')}</div></div>`;
+}
+function renderResources(){
+ $('#resGlyph').value=account.meta.glyphRunes;$('#resArtifact').value=account.meta.artifactResources;$('#resSkin').value=account.meta.skinStones;$('#resTitan').value=account.meta.titanPotions;
+ ['Glyph','Artifact','Skin','Titan'].forEach(k=>$('#res'+k).onchange=e=>account.meta[{Glyph:'glyphRunes',Artifact:'artifactResources',Skin:'skinStones',Titan:'titanPotions'}[k]]=+e.target.value);
+}
+$('#resourceCalc').onclick=()=>{const out=resourcePlan();$('#resourcePlan').innerHTML=out.map((r,i)=>`<div class="rank-item"><div class="rank">${i+1}</div><div><b>${r.title}</b><div class="muted">${r.why}</div></div></div>`).join('')||'<p>Keine Ressourcen eingetragen.</p>';}
+$('#teamCalc').onclick=()=>renderTeams($('#teamMode').value);
+
+function renderDashboard(){
+ $('#dashLevel').textContent=account.meta.teamLevel;$('#dashHeroes').textContent=Object.values(account.heroes).filter(x=>x.enabled).length;$('#dashTitans').textContent=Object.values(account.titans).filter(x=>x.enabled).length;
+}
+function renderAll(){renderDashboard();renderTop();renderWarnings();renderTeams('Arena');renderResources();}
+heroEditor();titanEditor();renderAll();
+
+
+function exportEnvelopeV1(){
+  return {
+    schemaVersion: 1,
+    exportedAt: new Date().toISOString(),
+    source: 'pwa-0.6',
+    account: account
+  };
+}
+function downloadJson(filename, value){
+  const blob=new Blob([JSON.stringify(value,null,2)],{type:'application/json'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url;a.download=filename;document.body.appendChild(a);a.click();a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url),500);
+}
+function normalizeImportedPayload(parsed){
+  if(parsed && parsed.schemaVersion===1 && parsed.account) return migrate(parsed.account);
+  if(parsed && parsed.meta && parsed.heroes && parsed.titans) return migrate(parsed);
+  throw new Error('Die Datei ist weder ein Export-v1 noch ein unterstützter älterer Account-Export.');
+}
+let pendingImportFile=null;
+$('#exportV1DownloadBtn').onclick=()=>downloadJson('hero-wars-advisor-account-v1.json',exportEnvelopeV1());
+$('#exportV1PreviewBtn').onclick=()=>$('#exportBox').value=JSON.stringify(exportEnvelopeV1(),null,2);
+$('#importFileInput').onchange=e=>{
+  pendingImportFile=e.target.files?.[0]||null;
+  $('#importFileInfo').innerHTML=pendingImportFile
+    ? `<b>${pendingImportFile.name}</b><br>${Math.round(pendingImportFile.size/1024)} KB`
+    : 'Noch keine Datei ausgewählt.';
+};
+$('#importFileBtn').onclick=async()=>{
+  if(!pendingImportFile)return alert('Bitte zuerst eine JSON-Datei auswählen.');
+  try{
+    const text=await pendingImportFile.text();
+    const imported=normalizeImportedPayload(JSON.parse(text));
+    const activeHeroes=Object.values(imported.heroes||{}).filter(x=>x.enabled).length;
+    const activeTitans=Object.values(imported.titans||{}).filter(x=>x.enabled).length;
+    if(!confirm(`Import übernehmen?\nTeamlevel: ${imported.meta.teamLevel}\nAktive Helden: ${activeHeroes}\nAktive Titanen: ${activeTitans}`))return;
+    account=imported;save();location.reload();
+  }catch(e){alert('Import fehlgeschlagen: '+e.message)}
+};
+$('#legacyDataBtn').onclick=()=>{
+  const keys=['hwa_v04_account','hwa_v03_account','hwa_v02_account'];
+  const found=keys.find(k=>localStorage.getItem(k));
+  if(!found)return alert('In diesem Browser wurden keine älteren Advisor-Daten gefunden.');
+  try{
+    const imported=migrate(JSON.parse(localStorage.getItem(found)));
+    if(confirm(`Ältere Daten aus ${found} übernehmen?`)){account=imported;save();location.reload();}
+  }catch(e){alert('Alte Daten konnten nicht gelesen werden: '+e.message)}
+};
+$('#resetBtn').onclick=()=>{if(confirm('Wirklich einen vollständig leeren Account herstellen?')){account=structuredClone(DB.default);save();location.reload();}};
+
+
+// ---------------- Screenshot Importer v0.4 ----------------
+const ShotImporter = {
+ files: [],
+ current: -1,
+ originalImage: null,
+ workingCanvas: null,
+ selection: null,
+ proposals: [],
+ hashes: new Set(JSON.parse(localStorage.getItem('hwa_v04_hashes')||'[]')),
+ log: JSON.parse(localStorage.getItem('hwa_v04_changelog')||'[]')
+};
+
+function importerEntityOptions(){
+  const type=$('#screenType').value;
+  const names=type.startsWith('titan')?Object.keys(account.titans):Object.keys(account.heroes);
+  $('#targetEntity').innerHTML='<option value="">Automatisch aus Text versuchen</option>'+names.map(n=>`<option>${n}</option>`).join('');
+}
+$('#screenType').onchange=importerEntityOptions; importerEntityOptions();
+
+const dz=$('#dropzone'), shotInput=$('#shotInput');
+dz.onclick=()=>shotInput.click();
+['dragenter','dragover'].forEach(ev=>dz.addEventListener(ev,e=>{e.preventDefault();dz.classList.add('drag')}));
+['dragleave','drop'].forEach(ev=>dz.addEventListener(ev,e=>{e.preventDefault();dz.classList.remove('drag')}));
+dz.addEventListener('drop',e=>addShotFiles([...e.dataTransfer.files]));
+shotInput.onchange=e=>addShotFiles([...e.target.files]);
+
+async function fileHash(file){
+  const buf=await file.arrayBuffer();
+  const digest=await crypto.subtle.digest('SHA-256',buf);
+  return [...new Uint8Array(digest)].map(b=>b.toString(16).padStart(2,'0')).join('');
+}
+async function addShotFiles(files){
+  for(const f of files.filter(x=>x.type.startsWith('image/'))){
+    const hash=await fileHash(f);
+    const duplicate=ShotImporter.hashes.has(hash);
+    ShotImporter.files.push({file:f,url:URL.createObjectURL(f),hash,duplicate,name:f.name});
+  }
+  renderFileList();
+  if(ShotImporter.current<0 && ShotImporter.files.length)selectShot(0);
+}
+function renderFileList(){
+  $('#fileList').innerHTML=ShotImporter.files.map((x,i)=>`<div class="file-item ${i===ShotImporter.current?'active':''}" data-shot="${i}">
+    <img class="thumb" src="${x.url}"><div><b>${x.name}</b><div class="mini">${x.duplicate?'⚠️ Bereits früher importiert':'Neu'}</div></div><button class="secondary" data-remove="${i}">×</button>
+  </div>`).join('');
+  $$('[data-shot]').forEach(x=>x.onclick=e=>{if(!e.target.dataset.remove)selectShot(+x.dataset.shot)});
+  $$('[data-remove]').forEach(x=>x.onclick=e=>{e.stopPropagation();removeShot(+x.dataset.remove)});
+}
+function removeShot(i){
+  URL.revokeObjectURL(ShotImporter.files[i].url);ShotImporter.files.splice(i,1);
+  if(ShotImporter.current>=ShotImporter.files.length)ShotImporter.current=ShotImporter.files.length-1;
+  renderFileList(); if(ShotImporter.current>=0)selectShot(ShotImporter.current);else clearImporterCanvas();
+}
+function selectShot(i){
+  ShotImporter.current=i;renderFileList();loadCanvasImage(ShotImporter.files[i].url);
+  $('#ocrStatus').textContent=ShotImporter.files[i].duplicate?'Dieses Bild wurde schon einmal verarbeitet. Änderungen werden trotzdem nur nach Bestätigung übernommen.':'Bild geladen.';
+  clearProposals();
+}
+function clearImporterCanvas(){const c=$('#importCanvas');c.width=1;c.height=1;c.getContext('2d').clearRect(0,0,1,1)}
+function loadCanvasImage(url){
+  const img=new Image();img.onload=()=>{
+    ShotImporter.originalImage=img;
+    const c=$('#importCanvas'),maxW=1100,scale=Math.min(1,maxW/img.width);
+    c.width=Math.round(img.width*scale);c.height=Math.round(img.height*scale);
+    c.getContext('2d').drawImage(img,0,0,c.width,c.height);
+    ShotImporter.workingCanvas=document.createElement('canvas');ShotImporter.workingCanvas.width=c.width;ShotImporter.workingCanvas.height=c.height;
+    ShotImporter.workingCanvas.getContext('2d').drawImage(c,0,0);ShotImporter.selection=null;
+  };img.src=url;
+}
+
+let selectStart=null;
+$('#importCanvas').addEventListener('pointerdown',e=>{
+  const r=e.target.getBoundingClientRect();selectStart={x:(e.clientX-r.left)*e.target.width/r.width,y:(e.clientY-r.top)*e.target.height/r.height};
+  e.target.setPointerCapture(e.pointerId);
+});
+$('#importCanvas').addEventListener('pointermove',e=>{
+  if(!selectStart)return;const c=e.target,r=c.getBoundingClientRect(),x=(e.clientX-r.left)*c.width/r.width,y=(e.clientY-r.top)*c.height/r.height;
+  const sx=Math.min(selectStart.x,x),sy=Math.min(selectStart.y,y),w=Math.abs(x-selectStart.x),h=Math.abs(y-selectStart.y);
+  const ctx=c.getContext('2d');ctx.clearRect(0,0,c.width,c.height);ctx.drawImage(ShotImporter.workingCanvas,0,0);ctx.strokeStyle='#f2b84b';ctx.lineWidth=3;ctx.strokeRect(sx,sy,w,h);
+  ShotImporter.selection={x:sx,y:sy,w,h};
+});
+$('#importCanvas').addEventListener('pointerup',e=>{selectStart=null});
+$('#cropBtn').onclick=()=>{
+  const s=ShotImporter.selection;if(!s||s.w<10||s.h<10)return alert('Bitte zuerst einen Bereich markieren.');
+  const old=ShotImporter.workingCanvas,tmp=document.createElement('canvas');tmp.width=Math.round(s.w);tmp.height=Math.round(s.h);
+  tmp.getContext('2d').drawImage(old,s.x,s.y,s.w,s.h,0,0,tmp.width,tmp.height);
+  ShotImporter.workingCanvas=tmp;const c=$('#importCanvas');c.width=tmp.width;c.height=tmp.height;c.getContext('2d').drawImage(tmp,0,0);ShotImporter.selection=null;
+};
+$('#resetCropBtn').onclick=()=>{if(ShotImporter.current>=0)loadCanvasImage(ShotImporter.files[ShotImporter.current].url)};
+
+function normalizeOCRText(text){return text.replace(/[|]/g,'I').replace(/[“”]/g,'"').replace(/\s+/g,' ').trim()}
+function knownEntityFromText(text,type){
+  const names=type.startsWith('titan')?Object.keys(account.titans):Object.keys(account.heroes);
+  const lower=text.toLowerCase();
+  return names.find(n=>lower.includes(n.toLowerCase()))||'';
+}
+function numsFromText(text){return (text.match(/\b\d{1,3}\b/g)||[]).map(Number).filter(n=>n>=0&&n<=130)}
+function confidenceClass(c){return c>=.8?'conf-high':c>=.55?'conf-mid':'conf-low'}
+function proposal(entity,field,oldValue,newValue,confidence,source){
+  if(newValue===undefined||newValue===null||Number.isNaN(newValue))return;
+  ShotImporter.proposals.push({entity,field,oldValue,newValue,confidence,source,apply:oldValue!==newValue});
+}
+function guessOverview(text,type){
+  const isTitan=type==='titan-overview', pool=isTitan?account.titans:account.heroes;
+  const lines=text.split(/\n+/).map(x=>x.trim()).filter(Boolean);
+  const unknown=[];
+  Object.keys(pool).forEach(name=>{
+    const idx=lines.findIndex(l=>l.toLowerCase().includes(name.toLowerCase()));
+    if(idx<0)return;
+    const neighborhood=lines.slice(idx,idx+3).join(' ');
+    const nums=numsFromText(neighborhood);
+    let level=nums.find(n=>n>=1&&n<=account.meta.teamLevel+10);
+    if(level){
+      proposal(name,'level',pool[name].level,level,.68,'Übersicht/Zeilennähe');
+    }else unknown.push(name+': Level nicht sicher erkannt');
+  });
+  if(!ShotImporter.proposals.length){
+    // fallback: list recognized names with unknown levels
+    const textLower=text.toLowerCase();
+    Object.keys(pool).filter(n=>textLower.includes(n.toLowerCase())).forEach(n=>unknown.push(n+': erkannt, Werte bitte manuell ergänzen'));
+  }
+  return unknown;
+}
+function guessHeroGlyphs(text,entity){
+  const h=account.heroes[entity],r=DB.heroRules[entity]; if(!h||!r)return ['Kein Zielheld erkannt.'];
+  const nums=numsFromText(text).filter(n=>n<=50);
+  const unknown=[];
+  r.glyph_order.forEach((g,i)=>{
+    if(nums[i]!==undefined)proposal(entity,'glyphs.'+g,h.glyphs[g]||0,nums[i],i===0?.62:.52,'Zahlenreihenfolge');
+    else unknown.push(g+': kein Wert erkannt');
+  });
+  return unknown;
+}
+function guessHeroArtifacts(text,entity){
+  const h=account.heroes[entity],r=DB.heroRules[entity]; if(!h||!r)return ['Kein Zielheld erkannt.'];
+  const nums=numsFromText(text).filter(n=>n<=130),unknown=[];
+  r.artifact_order.forEach((a,i)=>{
+    if(nums[i]!==undefined)proposal(entity,'artifacts.'+a,h.artifacts[a]||0,nums[i],i===0?.65:.55,'Zahlenreihenfolge');
+    else unknown.push(a+': kein Wert erkannt');
+  });return unknown;
+}
+function guessHeroSkins(text,entity){
+  const h=account.heroes[entity];if(!h)return ['Kein Zielheld erkannt.'];
+  const nums=numsFromText(text).filter(n=>n>=1&&n<=60),unknown=[];
+  Object.keys(h.skins).forEach((s,i)=>{
+    if(nums[i]!==undefined)proposal(entity,'skins.'+s,h.skins[s]||1,nums[i],.55,'Zahlenreihenfolge');
+    else unknown.push(s+': kein Wert erkannt');
+  });return unknown;
+}
+function guessTitanDetail(text,entity){
+  const t=account.titans[entity];if(!t)return ['Kein Zieltitan erkannt.'];
+  const nums=numsFromText(text),unknown=[];
+  if(nums[0]!==undefined)proposal(entity,'level',t.level,nums[0],.62,'erste plausible Zahl');
+  const skinNums=nums.filter(n=>n<=60).slice(1,1+Object.keys(t.skins).length);
+  Object.keys(t.skins).forEach((s,i)=>skinNums[i]!==undefined?proposal(entity,'skins.'+s,t.skins[s],skinNums[i],.48,'Zahlenreihenfolge'):unknown.push(s+': nicht erkannt'));
+  return unknown;
+}
+
+const HWA_TESSERACT = {
+  worker: null,
+  abortRequested: false,
+  workerPath: 'https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/worker.min.js',
+  corePath: 'https://cdn.jsdelivr.net/npm/tesseract.js-core@5.1.0',
+  langPath: 'https://tessdata.projectnaptha.com/4.0.0_fast',
+  async getWorker(language){
+    if(this.worker){
+      await this.worker.reinitialize(language);
+      return this.worker;
+    }
+    if(!window.Tesseract) throw new Error('Tesseract.js konnte nicht geladen werden. Beim ersten Start ist eine Internetverbindung erforderlich.');
+    this.worker = await Tesseract.createWorker(language, Tesseract.OEM.LSTM_ONLY, {
+      workerPath: this.workerPath,
+      corePath: this.corePath,
+      langPath: this.langPath,
+      logger: m => {
+        const progress = typeof m.progress === 'number' ? Math.round(m.progress*100) : 0;
+        $('#ocrProgressBar').style.width = progress+'%';
+        $('#ocrStatus').textContent = `${m.status||'OCR'} – ${progress}%`;
+      },
+      cacheMethod: 'write'
+    });
+    return this.worker;
+  },
+  async cancel(){
+    this.abortRequested=true;
+    if(this.worker){ await this.worker.terminate(); this.worker=null; }
+    $('#ocrStatus').textContent='OCR abgebrochen.';
+    $('#ocrProgressBar').style.width='0%';
+  }
+};
+$('#cancelOcrBtn').onclick=()=>HWA_TESSERACT.cancel();
+
+const DEFAULT_ZONES = {
+  'hero-overview': [{name:'Gesamte Übersicht',x:0,y:0,w:1,h:1}],
+  'titan-overview': [{name:'Gesamte Übersicht',x:0,y:0,w:1,h:1}],
+  'hero-glyphs': [
+    {name:'Heldname',x:.02,y:.00,w:.45,h:.18},
+    {name:'Werte',x:.35,y:.18,w:.63,h:.77}
+  ],
+  'hero-artifacts': [
+    {name:'Heldname',x:.02,y:.00,w:.45,h:.16},
+    {name:'Artefakte',x:.20,y:.16,w:.78,h:.78}
+  ],
+  'hero-skins': [
+    {name:'Heldname',x:.02,y:.00,w:.45,h:.16},
+    {name:'Skins',x:.12,y:.14,w:.86,h:.82}
+  ],
+  'titan-detail': [
+    {name:'Titanname',x:.02,y:.00,w:.45,h:.16},
+    {name:'Werte',x:.15,y:.14,w:.83,h:.82}
+  ]
+};
+function zoneStorageKey(){return 'hwa_v07_zones_'+$('#screenType').value}
+function currentZones(){
+  try{return JSON.parse(localStorage.getItem(zoneStorageKey()))||structuredClone(DEFAULT_ZONES[$('#screenType').value]||[{name:'Gesamt',x:0,y:0,w:1,h:1}])}
+  catch{return structuredClone(DEFAULT_ZONES[$('#screenType').value]||[{name:'Gesamt',x:0,y:0,w:1,h:1}])}
+}
+function renderZones(){
+  const zones=currentZones();
+  $('#zoneList').innerHTML=zones.map((z,i)=>`<div class="zone-row">
+    <input data-zone="${i}" data-zf="name" value="${z.name}">
+    <label>X<input type="number" step=".01" min="0" max="1" data-zone="${i}" data-zf="x" value="${z.x}"></label>
+    <label>Y<input type="number" step=".01" min="0" max="1" data-zone="${i}" data-zf="y" value="${z.y}"></label>
+    <label>B<input type="number" step=".01" min=".01" max="1" data-zone="${i}" data-zf="w" value="${z.w}"></label>
+    <label>H<input type="number" step=".01" min=".01" max="1" data-zone="${i}" data-zf="h" value="${z.h}"></label>
+    <button class="secondary" data-zone-remove="${i}">×</button>
+  </div>`).join('') + '<button id="addZoneBtn" class="secondary">Bereich hinzufügen</button>';
+  $('#addZoneBtn').onclick=()=>{const z=currentZones();z.push({name:'Neuer Bereich',x:0,y:0,w:1,h:1});localStorage.setItem(zoneStorageKey(),JSON.stringify(z));renderZones()};
+  $$('[data-zone-remove]').forEach(b=>b.onclick=()=>{const z=currentZones();z.splice(+b.dataset.zoneRemove,1);localStorage.setItem(zoneStorageKey(),JSON.stringify(z));renderZones()});
+}
+$('#screenType').addEventListener('change',renderZones);
+$('#saveZonesBtn').onclick=()=>{
+  const z=currentZones();
+  $$('[data-zone]').forEach(input=>{
+    const i=+input.dataset.zone, field=input.dataset.zf;
+    z[i][field]=field==='name'?input.value:+input.value;
+  });
+  localStorage.setItem(zoneStorageKey(),JSON.stringify(z));alert('Erkennungsbereiche gespeichert.');
+};
+$('#resetZonesBtn').onclick=()=>{localStorage.removeItem(zoneStorageKey());renderZones()};
+renderZones();
+
+function preprocessCanvas(source, mode, scale=1){
+  const out=document.createElement('canvas');
+  out.width=Math.max(1,Math.round(source.width*scale));out.height=Math.max(1,Math.round(source.height*scale));
+  const ctx=out.getContext('2d',{willReadFrequently:true});
+  ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality='high';
+  ctx.drawImage(source,0,0,out.width,out.height);
+  if(mode==='none')return out;
+  const img=ctx.getImageData(0,0,out.width,out.height),d=img.data;
+  let sum=0;
+  for(let i=0;i<d.length;i+=4){const g=.299*d[i]+.587*d[i+1]+.114*d[i+2];sum+=g;d[i]=d[i+1]=d[i+2]=g}
+  if(mode==='threshold'||mode==='auto'){
+    const avg=sum/(d.length/4), threshold=mode==='auto'?Math.max(105,Math.min(190,avg*.95)):145;
+    for(let i=0;i<d.length;i+=4){const v=d[i]>threshold?255:0;d[i]=d[i+1]=d[i+2]=v}
+  }
+  ctx.putImageData(img,0,0);return out;
+}
+function cropRelative(source,z){
+  const c=document.createElement('canvas');
+  c.width=Math.max(1,Math.round(source.width*z.w));c.height=Math.max(1,Math.round(source.height*z.h));
+  c.getContext('2d').drawImage(source,source.width*z.x,source.height*z.y,source.width*z.w,source.height*z.h,0,0,c.width,c.height);
+  return c;
+}
+async function recognizeZone(worker,canvas,numericOnly=false){
+  if(numericOnly) await worker.setParameters({
+    tessedit_char_whitelist:'0123456789/',
+    preserve_interword_spaces:'1',
+    tessedit_pageseg_mode:Tesseract.PSM.SPARSE_TEXT
+  });
+  else await worker.setParameters({
+    tessedit_char_whitelist:'',
+    preserve_interword_spaces:'1',
+    tessedit_pageseg_mode:Tesseract.PSM.SPARSE_TEXT
+  });
+  const result=await worker.recognize(canvas,{}, {blocks:true,text:true});
+  return {text:result.data.text||'',confidence:(result.data.confidence||0)/100,blocks:result.data.blocks||[]};
+}
+async function runLocalDetection(){
+  if(ShotImporter.current<0)return alert('Bitte zuerst einen Screenshot auswählen.');
+  HWA_TESSERACT.abortRequested=false;$('#ocrProgressBar').style.width='1%';
+  const language=$('#ocrLanguage').value, mode=$('#ocrMode').value, prep=$('#preprocessMode').value;
+  const scale=mode==='fast'?1.25:mode==='thorough'?2.25:1.7;
+  $('#ocrStatus').textContent='Tesseract-Worker wird vorbereitet …';
+  let combined='',confidences=[],unknown=[];
+  try{
+    const worker=await HWA_TESSERACT.getWorker(language);
+    const zones=currentZones();
+    for(let i=0;i<zones.length;i++){
+      if(HWA_TESSERACT.abortRequested)return;
+      $('#ocrStatus').textContent=`Bereich ${i+1}/${zones.length}: ${zones[i].name}`;
+      let region=cropRelative(ShotImporter.workingCanvas,zones[i]);
+      region=preprocessCanvas(region,prep,scale);
+      const numeric=/wert|artefakt|skin|level/i.test(zones[i].name);
+      const r=await recognizeZone(worker,region,numeric);
+      combined+=`\n[${zones[i].name}]\n${r.text}`;
+      confidences.push(r.confidence);
+    }
+    if(mode==='thorough'&&!HWA_TESSERACT.abortRequested){
+      const full=preprocessCanvas(ShotImporter.workingCanvas,'gray',1.5);
+      const r=await recognizeZone(worker,full,false);
+      combined+=`\n[Zweiter Gesamtdurchlauf]\n${r.text}`;confidences.push(r.confidence);
+    }
+    combined=normalizeOCRText(combined);
+    $('#rawText').textContent=combined||'Kein Text erkannt.';
+    const avg=confidences.length?Math.round(confidences.reduce((a,b)=>a+b,0)/confidences.length*100):0;
+    $('#ocrStatus').textContent=`Tesseract abgeschlossen – mittlere OCR-Sicherheit ${avg} %. Bitte alle Werte kontrollieren.`;
+    $('#ocrProgressBar').style.width='100%';
+    ShotImporter.proposals=[];
+    const type=$('#screenType').value;
+    let entity=$('#targetEntity').value||knownEntityFromText(combined,type);
+    if(type==='hero-overview'||type==='titan-overview')unknown=guessOverview(combined,type);
+    else if(type==='hero-glyphs')unknown=guessHeroGlyphs(combined,entity);
+    else if(type==='hero-artifacts')unknown=guessHeroArtifacts(combined,entity);
+    else if(type==='hero-skins')unknown=guessHeroSkins(combined,entity);
+    else if(type==='titan-detail')unknown=guessTitanDetail(combined,entity);
+    // OCR confidence adjusts proposal confidence conservatively.
+    const avgConf=confidences.length?confidences.reduce((a,b)=>a+b,0)/confidences.length:.25;
+    ShotImporter.proposals.forEach(p=>p.confidence=Math.min(p.confidence,Math.max(.2,avgConf)));
+    renderProposals(type,entity);
+    $('#unknownValues').textContent=unknown.length?unknown.join('\n'):'Keine.';
+  }catch(err){
+    $('#ocrStatus').innerHTML='<span class="warn">Tesseract-Erkennung fehlgeschlagen:</span> '+err.message;
+    $('#ocrProgressBar').style.width='0%';
+  }
+}
+$('#detectBtn').onclick=runLocalDetection;
+
+
+function getPathValue(entity,field){
+  const type=$('#screenType').value.startsWith('titan')?'titans':'heroes';
+  let obj=account[type][entity];return field.split('.').reduce((o,k)=>o?.[k],obj);
+}
+function setPathValue(entity,field,value,isTitan){
+  let obj=account[isTitan?'titans':'heroes'][entity],parts=field.split('.');
+  for(let i=0;i<parts.length-1;i++)obj=obj[parts[i]];
+  obj[parts.at(-1)]=value;
+}
+function renderProposals(type,entity){
+  // Add editable placeholders if OCR yielded nothing on a detail screen.
+  if(!ShotImporter.proposals.length && entity){
+    const isTitan=type.startsWith('titan');
+    if(type==='hero-glyphs')DB.heroRules[entity].glyph_order.forEach(g=>proposal(entity,'glyphs.'+g,account.heroes[entity].glyphs[g]||0,account.heroes[entity].glyphs[g]||0,.2,'manuelle Eingabe'));
+    if(type==='hero-artifacts')DB.heroRules[entity].artifact_order.forEach(a=>proposal(entity,'artifacts.'+a,account.heroes[entity].artifacts[a]||0,account.heroes[entity].artifacts[a]||0,.2,'manuelle Eingabe'));
+    if(type==='hero-skins')Object.keys(account.heroes[entity].skins).forEach(s=>proposal(entity,'skins.'+s,account.heroes[entity].skins[s]||1,account.heroes[entity].skins[s]||1,.2,'manuelle Eingabe'));
+    if(type==='titan-detail'){
+      proposal(entity,'level',account.titans[entity].level,account.titans[entity].level,.2,'manuelle Eingabe');
+      Object.keys(account.titans[entity].skins).forEach(s=>proposal(entity,'skins.'+s,account.titans[entity].skins[s]||1,account.titans[entity].skins[s]||1,.2,'manuelle Eingabe'));
+    }
+  }
+  $('#changeRows').innerHTML=ShotImporter.proposals.map((p,i)=>`<tr>
+    <td><input type="checkbox" data-prop-apply="${i}" ${p.apply?'checked':''}></td>
+    <td>${p.entity}</td><td>${p.field}</td><td>${p.oldValue}</td>
+    <td><input type="number" data-prop-value="${i}" value="${p.newValue}" min="0" max="130"></td>
+    <td class="${confidenceClass(p.confidence)}">${Math.round(p.confidence*100)} %<div class="mini">${p.source}</div></td>
+  </tr>`).join('');
+  $$('[data-prop-apply]').forEach(x=>x.onchange=e=>ShotImporter.proposals[+e.target.dataset.propApply].apply=e.target.checked);
+  $$('[data-prop-value]').forEach(x=>x.onchange=e=>{const p=ShotImporter.proposals[+e.target.dataset.propValue];p.newValue=+e.target.value;p.apply=p.oldValue!==p.newValue;renderProposals(type,entity)});
+}
+function clearProposals(){ShotImporter.proposals=[];$('#changeRows').innerHTML='';$('#rawText').textContent='Noch keine Erkennung.';$('#unknownValues').textContent='Keine.'}
+$('#clearChangesBtn').onclick=clearProposals;
+$('#applyChangesBtn').onclick=()=>{
+  const type=$('#screenType').value,isTitan=type.startsWith('titan'),changes=[];
+  ShotImporter.proposals.filter(p=>p.apply&&p.oldValue!==p.newValue).forEach(p=>{
+    const actualOld=getPathValue(p.entity,p.field);
+    setPathValue(p.entity,p.field,p.newValue,isTitan);
+    changes.push({entity:p.entity,field:p.field,old:actualOld,new:p.newValue,confidence:p.confidence});
+  });
+  if(!changes.length)return alert('Keine veränderten Werte ausgewählt.');
+  const file=ShotImporter.files[ShotImporter.current];
+  const entry={time:new Date().toISOString(),file:file?.name||'',hash:file?.hash||'',screenType:type,changes};
+  ShotImporter.log.unshift(entry);localStorage.setItem('hwa_v04_changelog',JSON.stringify(ShotImporter.log));
+  if(file?.hash){ShotImporter.hashes.add(file.hash);localStorage.setItem('hwa_v04_hashes',JSON.stringify([...ShotImporter.hashes]));}
+  save();renderChangeLog();clearProposals();alert(`${changes.length} Änderung(en) übernommen.`);
+};
+function renderChangeLog(){
+  $('#changeLog').innerHTML=ShotImporter.log.length?ShotImporter.log.slice(0,50).map(e=>`<div class="log-entry"><b>${new Date(e.time).toLocaleString('de-DE')}</b> · ${e.file||'ohne Dateiname'}<div class="mini">${e.screenType}</div>${e.changes.map(c=>`<div>${c.entity}: ${c.field} ${c.old} → <b>${c.new}</b></div>`).join('')}</div>`).join(''):'<p class="muted">Noch keine Änderungen importiert.</p>';
+}
+$('#exportLogBtn').onclick=()=>{
+  const blob=new Blob([JSON.stringify(ShotImporter.log,null,2)],{type:'application/json'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='Hero_Wars_Advisor_Aenderungsprotokoll.json';a.click();URL.revokeObjectURL(a.href);
+};
+$('#clearLogBtn').onclick=()=>{if(confirm('Änderungsprotokoll löschen?')){ShotImporter.log=[];localStorage.removeItem('hwa_v04_changelog');renderChangeLog();}};
+renderChangeLog();
+
+</script>
+
+<div id="pwaBar" style="position:fixed;left:12px;right:12px;bottom:12px;z-index:9999;display:none;background:#202834;border:1px solid #f2b84b;border-radius:12px;padding:12px;color:white">
+<b>Hero Wars Advisor installieren</b>
+<button id="pwaInstall" style="float:right">Installieren</button>
+<button id="pwaClose" class="secondary" style="float:right;margin-right:8px">Später</button>
+</div>
+<script>
+const HWA_SCHEMA_VERSION=1;let deferredInstallPrompt=null;
+class HwaDb{
+ static open(){return new Promise((ok,fail)=>{const r=indexedDB.open("hero-wars-advisor-v06",1);r.onupgradeneeded=()=>{const d=r.result;if(!d.objectStoreNames.contains("state"))d.createObjectStore("state")};r.onsuccess=()=>ok(r.result);r.onerror=()=>fail(r.error)})}
+ static async get(k){const d=await this.open();return new Promise((ok,fail)=>{const r=d.transaction("state").objectStore("state").get(k);r.onsuccess=()=>ok(r.result);r.onerror=()=>fail(r.error)})}
+ static async put(k,v){const d=await this.open();return new Promise((ok,fail)=>{const r=d.transaction("state","readwrite").objectStore("state").put(v,k);r.onsuccess=()=>ok();r.onerror=()=>fail(r.error)})}
+}
+window.HwaDb=HwaDb;
+window.addEventListener("load",async()=>{
+  const stored=await HwaDb.get("account");
+  if(stored && !localStorage.getItem('hwa_v06_account')){
+    account=stored;window.account=account;localStorage.setItem('hwa_v06_account',JSON.stringify(account));
+    if(typeof renderAll==="function")renderAll();
+  }else if(!stored){
+    await HwaDb.put("account",account);
+  }
+});
+if("serviceWorker"in navigator)window.addEventListener("load",()=>navigator.serviceWorker.register("./service-worker.js"));
+window.addEventListener("beforeinstallprompt",e=>{e.preventDefault();deferredInstallPrompt=e;document.getElementById("pwaBar").style.display="block"});
+document.getElementById("pwaInstall").onclick=async()=>{if(!deferredInstallPrompt)return;deferredInstallPrompt.prompt();await deferredInstallPrompt.userChoice;deferredInstallPrompt=null;document.getElementById("pwaBar").style.display="none"};
+document.getElementById("pwaClose").onclick=()=>document.getElementById("pwaBar").style.display="none";
+window.hwaExportV1=()=>JSON.stringify(exportEnvelopeV1(),null,2);
+window.hwaImportV1=async text=>{account=normalizeImportedPayload(JSON.parse(text));save()};
+</script>
+</body>
+</html>
