@@ -1,0 +1,18 @@
+Apache License 2.0 components
+
+Tesseract.js
+Source: https://github.com/naptha/tesseract.js
+License: Apache License, Version 2.0
+
+Tesseract.js Core
+Source: https://github.com/naptha/tesseract.js-core
+License: Apache License, Version 2.0
+
+Tesseract OCR and tessdata language models
+Sources:
+https://github.com/tesseract-ocr/tesseract
+https://github.com/tesseract-ocr/tessdata
+License: Apache License, Version 2.0
+
+The minified browser bundles may also contain MIT- or BSD-licensed helper modules.
+Their notices are preserved by the upstream distribution.
